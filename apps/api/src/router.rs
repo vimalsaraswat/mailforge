@@ -1,7 +1,9 @@
 use axum::{Router, routing::get};
 
-use crate::controllers;
+use crate::{controllers, state::AppState};
 
-pub fn router() -> Router {
-    Router::new().route("/health", get(controllers::health::health))
+pub fn router(state: AppState) -> Router {
+    Router::new()
+        .route("/health", get(controllers::health::health))
+        .with_state(state)
 }
