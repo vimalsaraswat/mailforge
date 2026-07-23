@@ -24,4 +24,4 @@ sqlx = { version = "0.8", features = [
     "migrate",
 ] }
 oauth2 = "5.0.0"
-reqwest = { version = "0.13.4", features = ["json"] }
+reqwest = { version = "0.12", features = ["json"] }

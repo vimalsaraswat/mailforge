@@ -1,6 +1,6 @@
 use oauth2::{
     AuthUrl, ClientId, ClientSecret, CsrfToken, EndpointNotSet, EndpointSet, PkceCodeChallenge,
-    RedirectUrl, Scope, TokenUrl, basic::BasicClient, url,
+    PkceCodeVerifier, RedirectUrl, Scope, TokenUrl, basic::BasicClient, url,
 };
 
 type GoogleClient = BasicClient<
@@ -18,14 +18,22 @@ pub struct GoogleOAuthClient {
     client_id: ClientId,
     client_secret: ClientSecret,
     redirect_uri: RedirectUrl,
+
+    http: reqwest::Client,
 }
 
 impl GoogleOAuthClient {
     pub fn new(client_id: String, client_secret: String, redirect_uri: String) -> Self {
+        let http = reqwest::ClientBuilder::new()
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .expect("failed to build reqwest client");
+
         Self {
             client_id: ClientId::new(client_id),
             client_secret: ClientSecret::new(client_secret),
             redirect_uri: RedirectUrl::new(redirect_uri).expect("invalid redirect uri"),
+            http,
         }
     }
 
@@ -37,7 +45,7 @@ impl GoogleOAuthClient {
             .set_redirect_uri(self.redirect_uri.clone())
     }
 
-    pub fn authorization_url(&self) -> (url::Url, CsrfToken, oauth2::PkceCodeVerifier) {
+    pub fn authorization_url(&self) -> (url::Url, CsrfToken, PkceCodeVerifier) {
         let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 
         let (url, csrf) = self
