@@ -1,6 +1,8 @@
+use crate::clients::google::models::GoogleToken;
 use oauth2::{
-    AuthUrl, ClientId, ClientSecret, CsrfToken, EndpointNotSet, EndpointSet, PkceCodeChallenge,
-    PkceCodeVerifier, RedirectUrl, Scope, TokenUrl, basic::BasicClient, url,
+    AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, EndpointNotSet, EndpointSet,
+    PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, RefreshToken, Scope, TokenResponse, TokenUrl,
+    basic::BasicClient, url,
 };
 
 type GoogleClient = BasicClient<
@@ -61,5 +63,49 @@ impl GoogleOAuthClient {
             .url();
 
         (url, csrf, pkce_verifier)
+    }
+
+    pub async fn exchange_code(
+        &self,
+        code: AuthorizationCode,
+        pkce_verifier: PkceCodeVerifier,
+    ) -> anyhow::Result<GoogleToken> {
+        use chrono::{Duration, Utc};
+
+        let token = self
+            .client()
+            .exchange_code(code)
+            .set_pkce_verifier(pkce_verifier)
+            .request_async(&self.http)
+            .await?;
+
+        Ok(GoogleToken {
+            access_token: token.access_token().secret().clone(),
+            refresh_token: token.refresh_token().map(|t| t.secret().clone()),
+            expires_at: token
+                .expires_in()
+                .map(|d| Utc::now() + Duration::from_std(d).unwrap()),
+        })
+    }
+
+    pub async fn refresh_access_token(
+        &self,
+        refresh_token: RefreshToken,
+    ) -> anyhow::Result<GoogleToken> {
+        use chrono::{Duration, Utc};
+
+        let token = self
+            .client()
+            .exchange_refresh_token(&refresh_token)
+            .request_async(&self.http)
+            .await?;
+
+        Ok(GoogleToken {
+            access_token: token.access_token().secret().clone(),
+            refresh_token: token.refresh_token().map(|t| t.secret().clone()),
+            expires_at: token
+                .expires_in()
+                .map(|d| Utc::now() + Duration::from_std(d).unwrap()),
+        })
     }
 }
