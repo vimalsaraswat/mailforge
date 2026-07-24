@@ -1,4 +1,4 @@
-use crate::clients::google::models::GoogleToken;
+use crate::clients::google::models::{GoogleToken, GoogleUserInfo};
 use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, EndpointNotSet, EndpointSet,
     PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, RefreshToken, Scope, TokenResponse, TokenUrl,
@@ -15,6 +15,7 @@ type GoogleClient = BasicClient<
 
 const AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
+const USERINFO_URL: &str = "https://www.googleapis.com/oauth2/v3/userinfo";
 
 pub struct GoogleOAuthClient {
     client_id: ClientId,
@@ -107,5 +108,17 @@ impl GoogleOAuthClient {
                 .expires_in()
                 .map(|d| Utc::now() + Duration::from_std(d).unwrap()),
         })
+    }
+
+    pub async fn user_info(&self, access_token: &str) -> anyhow::Result<GoogleUserInfo> {
+        Ok(self
+            .http
+            .get(USERINFO_URL)
+            .bearer_auth(access_token)
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<GoogleUserInfo>()
+            .await?)
     }
 }
