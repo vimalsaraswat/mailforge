@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::models::User;
 
+#[derive(Clone)]
 pub struct UserRepository {
     pool: PgPool,
 }

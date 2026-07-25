@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::models::MailAccount;
 
+#[derive(Clone)]
 pub struct MailAccountRepository {
     pool: PgPool,
 }
@@ -12,7 +13,7 @@ impl MailAccountRepository {
         Self { pool }
     }
 
-    pub async fn find_by_id(&self, id: i64) -> Result<Option<MailAccount>, sqlx::Error> {
+    pub async fn find_by_id(&self, id: Uuid) -> Result<Option<MailAccount>, sqlx::Error> {
         sqlx::query_as::<_, MailAccount>(
             r#"
             SELECT *

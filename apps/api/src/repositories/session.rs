@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::models::Session;
 
+#[derive(Clone)]
 pub struct SessionRepository {
     pool: PgPool,
 }
