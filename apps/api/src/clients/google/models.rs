@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use serde::Deserialize;
 
 #[derive(Debug, Clone)]
 pub struct GoogleToken {
@@ -7,6 +8,7 @@ pub struct GoogleToken {
     pub expires_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, Deserialize)]
 pub struct GoogleUserInfo {
     pub id: String,
     pub email: String,
