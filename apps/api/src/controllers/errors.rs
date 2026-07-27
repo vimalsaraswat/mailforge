@@ -7,22 +7,24 @@ use crate::services::errors::AuthServiceError;
 
 pub fn auth(error: AuthServiceError) -> Response {
     tracing::error!(?error, "authentication request failed");
-    match error {
+
+    let (status, message) = match error {
         AuthServiceError::NotConfigured => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            "Google OAuth is not configured",
-        )
-            .into_response(),
+            "Google OAuth is not configured".to_string(),
+        ),
         AuthServiceError::UnverifiedEmail | AuthServiceError::MissingRefreshToken => {
-            (StatusCode::BAD_REQUEST, error.to_string()).into_response()
+            (StatusCode::BAD_REQUEST, error.to_string())
         }
-        AuthServiceError::Provider(_) => {
-            (StatusCode::BAD_GATEWAY, "Google authentication failed").into_response()
-        }
+        AuthServiceError::Provider(_) => (
+            StatusCode::BAD_GATEWAY,
+            "Google authentication failed".to_string(),
+        ),
         AuthServiceError::Database(_) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            "Authentication storage failed",
-        )
-            .into_response(),
-    }
+            "Authentication storage failed".to_string(),
+        ),
+    };
+
+    (status, message).into_response()
 }
