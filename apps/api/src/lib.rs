@@ -8,4 +8,5 @@ pub mod services;
 pub mod clients;
 pub mod config;
 pub mod db;
+pub mod http;
 pub mod state;
