@@ -1,12 +1,12 @@
 use std::env;
-
 #[derive(Debug, Clone)]
 pub struct Config {
     pub host: String,
     pub port: u16,
     pub database_url: String,
-    pub google_client_id: Option<String>,
-    pub google_client_secret: Option<String>,
+
+    pub google_client_id: String,
+    pub google_client_secret: String,
     pub google_redirect_uri: String,
     pub frontend_url: String,
     pub session_ttl_seconds: u64,
@@ -41,8 +41,10 @@ impl Config {
             host,
             port,
             database_url,
-            google_client_id: env::var("GOOGLE_CLIENT_ID").ok(),
-            google_client_secret: env::var("GOOGLE_CLIENT_SECRET").ok(),
+            google_client_id: env::var("GOOGLE_CLIENT_ID")
+                .expect("Missing required environment variable: GOOGLE_CLIENT_ID"),
+            google_client_secret: env::var("GOOGLE_CLIENT_SECRET")
+                .expect("Missing required environment variable: GOOGLE_CLIENT_SECRET"),
             google_redirect_uri: env::var("GOOGLE_REDIRECT_URI")
                 .unwrap_or_else(|_| "http://127.0.0.1:3000/auth/google/callback".to_string()),
             frontend_url: env::var("FRONTEND_URL")
