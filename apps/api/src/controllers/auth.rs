@@ -1,6 +1,6 @@
 use axum::{
     Json,
-    extract::State,
+    extract::{Query, State},
     http::{HeaderMap, StatusCode, header},
     response::{IntoResponse, Redirect, Response},
 };
@@ -31,6 +31,61 @@ pub async fn google_login(State(state): State<AppState>) -> Response {
         .headers_mut()
         .insert(header::SET_COOKIE, cookies::cookie_header(&oauth_cookie));
 
+    response
+}
+
+pub async fn google_callback(
+    State(state): State<AppState>,
+    Query(query): Query<GoogleCallbackQuery>,
+    headers: HeaderMap,
+) -> Response {
+    let cookie_manager = cookies::CookieManager::new(state.config.clone());
+
+    let failure = |response: Response| {
+        let mut response = response;
+        response.headers_mut().append(
+            header::SET_COOKIE,
+            cookies::cookie_header(&cookie_manager.expired_oauth_flow_cookie()),
+        );
+        response
+    };
+
+    if let Some(error) = query.error {
+        return failure((StatusCode::BAD_REQUEST, error).into_response());
+    }
+
+    let Some(code) = query.code else {
+        return failure(
+            (StatusCode::BAD_REQUEST, "Missing Google authorization code").into_response(),
+        );
+    };
+    let Some(returned_state) = query.state else {
+        return failure((StatusCode::BAD_REQUEST, "Missing OAuth state").into_response());
+    };
+    let Some((expected_state, pkce_verifier)) = cookie_manager.oauth_flow(&headers) else {
+        return failure((StatusCode::BAD_REQUEST, "Missing OAuth session").into_response());
+    };
+    if returned_state != expected_state {
+        return failure((StatusCode::BAD_REQUEST, "Invalid OAuth state").into_response());
+    }
+
+    let login = match AuthService::new(&state.db, state.config.clone())
+        .complete_google_login(code, pkce_verifier)
+        .await
+    {
+        Ok(login) => login,
+        Err(error) => return failure(errors::auth(error)),
+    };
+
+    let mut response = Redirect::to(&state.config.frontend_url).into_response();
+    response.headers_mut().append(
+        header::SET_COOKIE,
+        cookies::cookie_header(&cookie_manager.session_cookie(&login.session_id)),
+    );
+    response.headers_mut().append(
+        header::SET_COOKIE,
+        cookies::cookie_header(&cookie_manager.expired_oauth_flow_cookie()),
+    );
     response
 }
 
