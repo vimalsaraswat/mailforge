@@ -40,9 +40,10 @@ pub async fn google_callback(
     headers: HeaderMap,
 ) -> Response {
     let cookie_manager = cookies::CookieManager::new(state.config.clone());
+    let auth_service = AuthService::new(&state.db, state.config.clone());
 
-    let failure = |response: Response| {
-        let mut response = response;
+    let failure = |status: StatusCode, message: String| {
+        let mut response = (status, message).into_response();
         response.headers_mut().append(
             header::SET_COOKIE,
             cookies::cookie_header(&cookie_manager.expired_oauth_flow_cookie()),
@@ -51,41 +52,55 @@ pub async fn google_callback(
     };
 
     if let Some(error) = query.error {
-        return failure((StatusCode::BAD_REQUEST, error).into_response());
+        return failure(StatusCode::BAD_REQUEST, error);
     }
 
-    let Some(code) = query.code else {
-        return failure(
-            (StatusCode::BAD_REQUEST, "Missing Google authorization code").into_response(),
-        );
+    let code = match query.code {
+        Some(code) => code,
+        None => {
+            return failure(
+                StatusCode::BAD_REQUEST,
+                "Missing Google authorization code".to_string(),
+            );
+        }
     };
-    let Some(returned_state) = query.state else {
-        return failure((StatusCode::BAD_REQUEST, "Missing OAuth state").into_response());
+    let returned_state = match query.state {
+        Some(state) => state,
+        None => return failure(StatusCode::BAD_REQUEST, "Missing OAuth state".to_string()),
     };
-    let Some((expected_state, pkce_verifier)) = cookie_manager.oauth_flow(&headers) else {
-        return failure((StatusCode::BAD_REQUEST, "Missing OAuth session").into_response());
+    let (expected_state, pkce_verifier) = match cookie_manager.oauth_flow(&headers) {
+        Some(flow) => flow,
+        None => return failure(StatusCode::BAD_REQUEST, "Missing OAuth session".to_string()),
     };
     if returned_state != expected_state {
-        return failure((StatusCode::BAD_REQUEST, "Invalid OAuth state").into_response());
+        return failure(StatusCode::BAD_REQUEST, "Invalid OAuth state".to_string());
     }
 
-    let login = match AuthService::new(&state.db, state.config.clone())
+    let login = match auth_service
         .complete_google_login(code, pkce_verifier)
         .await
     {
         Ok(login) => login,
-        Err(error) => return failure(errors::auth(error)),
+        Err(error) => {
+            let mut response = errors::auth(error);
+            response.headers_mut().append(
+                header::SET_COOKIE,
+                cookies::cookie_header(&cookie_manager.expired_oauth_flow_cookie()),
+            );
+            return response;
+        }
     };
 
     let mut response = Redirect::to(&state.config.frontend_url).into_response();
-    response.headers_mut().append(
-        header::SET_COOKIE,
+    let cookies = vec![
         cookies::cookie_header(&cookie_manager.session_cookie(&login.session_id)),
-    );
-    response.headers_mut().append(
-        header::SET_COOKIE,
         cookies::cookie_header(&cookie_manager.expired_oauth_flow_cookie()),
-    );
+    ];
+
+    response
+        .headers_mut()
+        .extend(cookies.into_iter().map(|c| (header::SET_COOKIE, c)));
+
     response
 }
 
