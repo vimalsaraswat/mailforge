@@ -94,13 +94,13 @@ pub async fn me(State(state): State<AppState>, headers: HeaderMap) -> Response {
     let Some(session_id) = cookie_manager.session_id(&headers) else {
         return StatusCode::UNAUTHORIZED.into_response();
     };
-    let user = match AuthService::new(&state.db, state.config.clone())
-        .current_user(session_id)
-        .await
-    {
+
+    let auth_service = AuthService::new(&state.db, state.config.clone());
+    let user = match auth_service.current_user(session_id).await {
         Ok(Some(user)) => user,
         Ok(None) => return StatusCode::UNAUTHORIZED.into_response(),
         Err(error) => return errors::auth(error),
     };
+
     Json(MeResponse::from(user)).into_response()
 }
