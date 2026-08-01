@@ -1,4 +1,4 @@
-use api::{config::Config, db, router, state::AppState};
+use api::{config::Config, db, routes, state::AppState};
 
 use tokio::net::TcpListener;
 
@@ -12,7 +12,7 @@ async fn main() -> anyhow::Result<()> {
 
     let state = AppState { config, db };
 
-    let app = router::router(state);
+    let app = routes::router(state);
     let listener = TcpListener::bind(address).await.unwrap();
 
     axum::serve(listener, app).await?;
