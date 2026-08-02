@@ -51,8 +51,12 @@ pub async fn google_callback(
         response
     };
 
-    if let Some(error) = query.error {
-        return failure(StatusCode::BAD_REQUEST, error);
+    if query.error.is_some() {
+        tracing::warn!("Google OAuth provider returned an authorization error");
+        return failure(
+            StatusCode::BAD_REQUEST,
+            "Google authorization was denied".to_string(),
+        );
     }
 
     let code = match query.code {
