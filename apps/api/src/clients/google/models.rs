@@ -10,9 +10,9 @@ pub struct GoogleToken {
 
 #[derive(Debug, Deserialize)]
 pub struct GoogleUserInfo {
-    pub id: String,
+    pub sub: String,
     pub email: String,
-    pub verified_email: bool,
+    pub email_verified: bool,
     pub name: String,
     pub given_name: Option<String>,
     pub family_name: Option<String>,

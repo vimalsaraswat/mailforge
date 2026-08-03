@@ -69,13 +69,13 @@ impl AuthService {
             .await
             .map_err(AuthServiceError::Provider)?;
 
-        if !profile.verified_email {
+        if !profile.email_verified {
             return Err(AuthServiceError::UnverifiedEmail);
         }
 
         let now = Utc::now();
         let user =
-            if let Some(mut user) = self.users.find_by_provider("google", &profile.id).await? {
+            if let Some(mut user) = self.users.find_by_provider("google", &profile.sub).await? {
                 user.email = profile.email.clone();
                 user.name = profile.name.clone();
                 user.picture = profile.picture.clone();
@@ -86,7 +86,7 @@ impl AuthService {
                 let user = User {
                     id: Uuid::new_v4(),
                     provider: "google".to_string(),
-                    provider_user_id: profile.id.clone(),
+                    provider_user_id: profile.sub.clone(),
                     email: profile.email.clone(),
                     name: profile.name.clone(),
                     picture: profile.picture.clone(),
@@ -99,7 +99,7 @@ impl AuthService {
 
         let existing_account = self
             .mail_accounts
-            .find_by_provider("google", &profile.id)
+            .find_by_provider("google", &profile.sub)
             .await?;
         let refresh_token = token
             .refresh_token
@@ -127,7 +127,7 @@ impl AuthService {
                     id: Uuid::new_v4(),
                     user_id: user.id,
                     provider: "google".to_string(),
-                    account_id: profile.id,
+                    account_id: profile.sub,
                     email: profile.email,
                     access_token: token.access_token,
                     refresh_token,
