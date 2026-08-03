@@ -61,6 +61,8 @@ impl GoogleOAuthClient {
             .add_scope(Scope::new(
                 "https://www.googleapis.com/auth/gmail.send".into(),
             ))
+            .add_extra_param("prompt", "consent")
+            .add_extra_param("access_type", "offline")
             .set_pkce_challenge(pkce_challenge)
             .url();
 
