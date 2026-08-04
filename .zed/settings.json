@@ -1,0 +1,54 @@
+{
+  "$schema": "https://zed.dev/schema/settings.json",
+  "prettier": {
+    "allowed": true,
+  },
+  "lsp": {
+    "eslint": {
+      "settings": {
+        "configFile": "apps/web/eslint.config.mjs",
+        "workingDirectory": {
+          "mode": "auto",
+        },
+      },
+    },
+  },
+  "languages": {
+    "Vue.js": {
+      "formatter": {
+        "external": {
+          "command": "./apps/web/node_modules/.bin/prettier",
+          "arguments": ["--stdin-filepath", "{buffer_path}"],
+        },
+      },
+      "code_actions_on_format": {
+        "source.fixAll.eslint": true,
+      },
+      "format_on_save": "on",
+    },
+    "TypeScript": {
+      "formatter": {
+        "external": {
+          "command": "./apps/web/node_modules/.bin/prettier",
+          "arguments": ["--stdin-filepath", "{buffer_path}"],
+        },
+      },
+      "code_actions_on_format": {
+        "source.fixAll.eslint": true,
+      },
+      "format_on_save": "on",
+    },
+    "JavaScript": {
+      "formatter": {
+        "external": {
+          "command": "./apps/web/node_modules/.bin/prettier",
+          "arguments": ["--stdin-filepath", "{buffer_path}"],
+        },
+      },
+      "code_actions_on_format": {
+        "source.fixAll.eslint": true,
+      },
+      "format_on_save": "on",
+    },
+  },
+}
