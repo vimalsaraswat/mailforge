@@ -12,9 +12,29 @@
         },
       },
     },
+    "tailwindcss-language-server": {
+      "settings": {
+        "includeLanguages": {
+          "vue": "html",
+        },
+        "experimental": {
+          "classRegex": [
+            "class=\"([^\"]*)\"",
+            "class='([^']*)'",
+            ":class=\"([^\"]*)\"",
+            ":class='([^']*)'",
+          ],
+        },
+      },
+    },
   },
   "languages": {
     "Vue.js": {
+      "language_servers": [
+        "tailwindcss-language-server",
+        "vue-language-server",
+        "...",
+      ],
       "formatter": {
         "external": {
           "command": "./apps/web/node_modules/.bin/prettier",
