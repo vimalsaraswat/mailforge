@@ -9,6 +9,7 @@ export function useAuth() {
 
   const user = ref<CurrentUser | null>(null)
   const loading = ref(true)
+  const loggingOut = ref(false)
 
   async function loadUser() {
     try {
@@ -24,12 +25,24 @@ export function useAuth() {
     window.location.assign(auth.getGoogleLoginUrl())
   }
 
+  async function logout() {
+    loggingOut.value = true
+    try {
+      await auth.logout()
+      user.value = null
+    } finally {
+      loggingOut.value = false
+    }
+  }
+
   onMounted(loadUser)
 
   return {
     user: readonly(user),
     loading: readonly(loading),
+    loggingOut: readonly(loggingOut),
     loadUser,
+    logout,
     signInWithGoogle,
   }
 }

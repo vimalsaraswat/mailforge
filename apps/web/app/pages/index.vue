@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { user, loading, signInWithGoogle } = useAuth()
+const { user, loading, loggingOut, logout, signInWithGoogle } = useAuth()
 
 const providers = [
   {
@@ -41,6 +41,13 @@ const providers = [
           <h1 class="text-xl font-semibold">Welcome, {{ user.name }}</h1>
           <p class="text-muted">{{ user.email }}</p>
         </div>
+        <UButton
+          label="Log out"
+          color="neutral"
+          variant="outline"
+          :loading="loggingOut"
+          @click="logout"
+        />
       </div>
     </UPageCard>
     <UPageCard v-if="!loading && !user" class="w-full max-w-md">
