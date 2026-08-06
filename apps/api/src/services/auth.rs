@@ -153,4 +153,9 @@ impl AuthService {
             expires_at: session.expires_at,
         })
     }
+
+    pub async fn logout(&self, session_id: Uuid) -> Result<(), AuthServiceError> {
+        self.sessions.delete(session_id).await?;
+        Ok(())
+    }
 }
