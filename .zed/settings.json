@@ -18,6 +18,7 @@
           "vue": "html",
         },
         "experimental": {
+          "configFile": "apps/web/app/assets/css/main.css",
           "classRegex": [
             "class=\"([^\"]*)\"",
             "class='([^']*)'",
