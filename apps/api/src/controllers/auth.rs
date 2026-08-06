@@ -123,3 +123,25 @@ pub async fn me(State(state): State<AppState>, headers: HeaderMap) -> Response {
 
     Json(MeResponse::from(user)).into_response()
 }
+
+pub async fn logout(State(state): State<AppState>, headers: HeaderMap) -> Response {
+    let cookie_manager = cookies::CookieManager::new(state.config.clone());
+
+    // Remove the session from storage if it exists.
+    if let Some(session_id) = cookie_manager.session_id(&headers) {
+        let auth_service = AuthService::new(&state.db, state.config.clone());
+
+        if let Err(err) = auth_service.logout(session_id).await {
+            return errors::auth(err);
+        }
+    }
+
+    let mut response = StatusCode::NO_CONTENT.into_response();
+
+    response.headers_mut().insert(
+        header::SET_COOKIE,
+        cookies::cookie_header(&cookie_manager.expired_session_cookie()),
+    );
+
+    response
+}

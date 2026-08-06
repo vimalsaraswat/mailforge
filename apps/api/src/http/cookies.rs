@@ -25,6 +25,10 @@ impl CookieManager {
         )
     }
 
+    pub fn expired_session_cookie(&self) -> String {
+        self.build_cookie(SESSION_COOKIE, "", "/", 0)
+    }
+
     pub fn oauth_flow_cookie(&self, state: &str, verifier: &str) -> String {
         self.build_cookie(
             OAUTH_FLOW_COOKIE,
