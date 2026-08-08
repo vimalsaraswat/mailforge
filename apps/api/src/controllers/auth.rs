@@ -18,13 +18,18 @@ pub struct GoogleCallbackQuery {
     pub error: Option<String>,
 }
 
-pub async fn google_login(State(state): State<AppState>) -> Response {
+pub async fn google_login(
+    State(state): State<AppState>,
+    Query(query): Query<std::collections::HashMap<String, String>>,
+) -> Response {
+    let include_gmail = query.get("connect").map(|v| v == "true").unwrap_or(false);
+
     let (authorization_url, csrf_state, pkce_verifier) =
-        AuthService::new(&state.db, state.config.clone()).start_google_login();
+        AuthService::new(&state.db, state.config.clone()).start_google_login(include_gmail);
 
     let cookie_manager = cookies::CookieManager::new(state.config.clone());
     let oauth_cookie =
-        cookie_manager.oauth_flow_cookie(csrf_state.secret(), pkce_verifier.secret());
+        cookie_manager.oauth_flow_cookie(csrf_state.secret(), pkce_verifier.secret(), include_gmail);
 
     let mut response = Redirect::to(authorization_url.as_str()).into_response();
     response

@@ -29,10 +29,10 @@ impl CookieManager {
         self.build_cookie(SESSION_COOKIE, "", "/", 0)
     }
 
-    pub fn oauth_flow_cookie(&self, state: &str, verifier: &str) -> String {
+    pub fn oauth_flow_cookie(&self, state: &str, verifier: &str, connect: bool) -> String {
         self.build_cookie(
             OAUTH_FLOW_COOKIE,
-            &format!("{state}.{verifier}"),
+            &format!("{state}.{verifier}.{connect}"),
             "/auth/google",
             600,
         )
@@ -47,10 +47,16 @@ impl CookieManager {
             .and_then(|value| Uuid::parse_str(&value).ok())
     }
 
-    pub fn oauth_flow(&self, headers: &HeaderMap) -> Option<(String, String)> {
-        self.cookie_value(headers, OAUTH_FLOW_COOKIE)?
-            .split_once('.')
-            .map(|(state, verifier)| (state.to_string(), verifier.to_string()))
+    pub fn oauth_flow(&self, headers: &HeaderMap) -> Option<(String, String, bool)> {
+        let val = self.cookie_value(headers, OAUTH_FLOW_COOKIE)?;
+        let parts: Vec<&str> = val.split('.').collect();
+        if parts.len() < 3 {
+            return None;
+        }
+        let state = parts[0].to_string();
+        let verifier = parts[1].to_string();
+        let connect = parts[2].parse::<bool>().unwrap_or(false);
+        Some((state, verifier, connect))
     }
 
     fn cookie_value(&self, headers: &HeaderMap, name: &str) -> Option<String> {

@@ -46,8 +46,8 @@ impl AuthService {
         Ok(self.users.find_by_id(session.user_id).await?)
     }
 
-    pub fn start_google_login(&self) -> (Url, CsrfToken, PkceCodeVerifier) {
-        self.oauth.authorization_url()
+    pub fn start_google_login(&self, include_gmail: bool) -> (Url, CsrfToken, PkceCodeVerifier) {
+        self.oauth.authorization_url(include_gmail)
     }
 
     pub async fn complete_google_login(
