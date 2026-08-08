@@ -77,7 +77,7 @@ pub async fn google_callback(
         Some(state) => state,
         None => return failure(StatusCode::BAD_REQUEST, "Missing OAuth state".to_string()),
     };
-    let (expected_state, pkce_verifier) = match cookie_manager.oauth_flow(&headers) {
+    let (expected_state, pkce_verifier, should_connect) = match cookie_manager.oauth_flow(&headers) {
         Some(flow) => flow,
         None => return failure(StatusCode::BAD_REQUEST, "Missing OAuth session".to_string()),
     };
@@ -86,7 +86,7 @@ pub async fn google_callback(
     }
 
     let login = match auth_service
-        .complete_google_login(code, pkce_verifier)
+        .complete_google_login(code, pkce_verifier, should_connect)
         .await
     {
         Ok(login) => login,
