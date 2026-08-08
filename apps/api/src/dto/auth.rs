@@ -2,6 +2,7 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::models::User;
+use chrono::{DateTime, Utc};
 
 #[derive(Debug, Serialize)]
 pub struct MeResponse {
@@ -9,6 +10,8 @@ pub struct MeResponse {
     pub email: String,
     pub name: String,
     pub picture: Option<String>,
+    pub gmail_connected: Option<bool>,
+    pub gmail_connected_at: Option<DateTime<Utc>>,
 }
 
 impl From<User> for MeResponse {
@@ -18,6 +21,8 @@ impl From<User> for MeResponse {
             email: user.email,
             name: user.name,
             picture: user.picture,
+            gmail_connected: None,
+            gmail_connected_at: None,
         }
     }
 }

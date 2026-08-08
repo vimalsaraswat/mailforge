@@ -164,6 +164,15 @@ impl AuthService {
             .await?)
     }
 
+    pub async fn get_gmail_connection_status(
+        &self,
+        user_id: Uuid,
+    ) -> Result<Option<(bool, chrono::DateTime<Utc>)>, AuthServiceError> {
+        let accounts = self.mail_accounts.find_by_user(user_id).await?;
+        let account = accounts.iter().find(|a| a.provider == "google");
+        Ok(account.map(|a| (true, a.expires_at)))
+    }
+
     pub async fn logout(&self, session_id: Uuid) -> Result<(), AuthServiceError> {
         self.sessions.delete(session_id).await?;
         Ok(())

@@ -125,8 +125,13 @@ pub async fn me(State(state): State<AppState>, headers: HeaderMap) -> Response {
         Ok(None) => return StatusCode::UNAUTHORIZED.into_response(),
         Err(error) => return errors::auth(error),
     };
+    let gmail_status = auth_service.get_gmail_connection_status(user.id).await.unwrap_or(None);
 
-    Json(MeResponse::from(user)).into_response()
+    let mut response = MeResponse::from(user);
+    response.gmail_connected = gmail_status.map(|s| s.0);
+    response.gmail_connected_at = gmail_status.map(|s| s.1);
+
+    Json(response).into_response()
 }
 
 pub async fn logout(State(state): State<AppState>, headers: HeaderMap) -> Response {
