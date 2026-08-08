@@ -17,8 +17,9 @@ export function createAuthService(api: ApiClient, apiBase: string) {
       return api.post(authRoutes.logout)
     },
 
-    getGoogleLoginUrl() {
-      return `${apiBase}${authRoutes.googleLogin}`
+    getGoogleLoginUrl(connectGmail?: boolean) {
+      const url = `${apiBase}${authRoutes.googleLogin}`
+      return connectGmail ? `${url}?connect=true` : url
     },
   }
 }

@@ -1,8 +1,14 @@
 <script setup lang="ts">
 import type { CurrentUser } from '~/types/auth'
+import { createApiClient } from '~/services/api'
+import { createAuthService } from '~/services/auth'
 
 defineProps<{ user: CurrentUser; loggingOut: boolean }>()
 const emit = defineEmits<{ logout: [] }>()
+
+const config = useRuntimeConfig()
+const authService = createAuthService(createApiClient(config.public.apiBase), config.public.apiBase)
+const connectGmailUrl = authService.getGoogleLoginUrl(true)
 </script>
 
 <template>
@@ -27,15 +33,26 @@ const emit = defineEmits<{ logout: [] }>()
       </div>
     </div>
     <USeparator class="my-8" />
-    <UButton
-      label="Log out"
-      color="neutral"
-      variant="outline"
-      icon="i-lucide-log-out"
-      block
-      size="lg"
-      :loading="loggingOut"
-      @click="emit('logout')"
-    />
+    <div class="space-y-3">
+      <UButton
+        label="Connect Gmail Account"
+        color="primary"
+        variant="solid"
+        icon="i-lucide-mail"
+        block
+        size="lg"
+        :to="connectGmailUrl"
+      />
+      <UButton
+        label="Log out"
+        color="neutral"
+        variant="outline"
+        icon="i-lucide-log-out"
+        block
+        size="lg"
+        :loading="loggingOut"
+        @click="emit('logout')"
+      />
+    </div>
   </UPageCard>
 </template>
