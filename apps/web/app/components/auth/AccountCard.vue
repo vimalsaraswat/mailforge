@@ -35,13 +35,14 @@ const connectGmailUrl = authService.getGoogleLoginUrl(true)
     <USeparator class="my-8" />
     <div class="space-y-3">
       <UButton
-        label="Connect Gmail Account"
-        color="primary"
+        :label="user.gmail_connected ? 'Gmail Connected' : 'Connect Gmail Account'"
+        :color="user.gmail_connected ? 'success' : 'primary'"
         variant="solid"
         icon="i-lucide-mail"
         block
         size="lg"
-        :to="connectGmailUrl"
+        :to="user.gmail_connected ? undefined : connectGmailUrl"
+        :disabled="!!user.gmail_connected"
       />
       <UButton
         label="Log out"
