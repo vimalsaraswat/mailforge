@@ -49,20 +49,26 @@ impl GoogleOAuthClient {
             .set_redirect_uri(self.redirect_uri.clone())
     }
 
-    pub fn authorization_url(&self) -> (url::Url, CsrfToken, PkceCodeVerifier) {
+    pub fn authorization_url(&self, include_gmail: bool) -> (url::Url, CsrfToken, PkceCodeVerifier) {
         let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 
-        let (url, csrf) = self
-            .client()
+        let client = self.client();
+        let mut auth_request = client
             .authorize_url(CsrfToken::new_random)
             .add_scope(Scope::new("openid".into()))
             .add_scope(Scope::new("email".into()))
-            .add_scope(Scope::new("profile".into()))
-            .add_scope(Scope::new(
-                "https://www.googleapis.com/auth/gmail.send".into(),
-            ))
-            .add_extra_param("prompt", "consent")
-            .add_extra_param("access_type", "offline")
+            .add_scope(Scope::new("profile".into()));
+
+        if include_gmail {
+            auth_request = auth_request
+                .add_scope(Scope::new(
+                    "https://www.googleapis.com/auth/gmail.send".into(),
+                ))
+                .add_extra_param("prompt", "consent")
+                .add_extra_param("access_type", "offline");
+        }
+
+        let (url, csrf) = auth_request
             .set_pkce_challenge(pkce_challenge)
             .url();
 
