@@ -49,7 +49,10 @@ impl GoogleOAuthClient {
             .set_redirect_uri(self.redirect_uri.clone())
     }
 
-    pub fn authorization_url(&self, include_gmail: bool) -> (url::Url, CsrfToken, PkceCodeVerifier) {
+    pub fn authorization_url(
+        &self,
+        include_gmail: bool,
+    ) -> (url::Url, CsrfToken, PkceCodeVerifier) {
         let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 
         let client = self.client();
@@ -68,9 +71,7 @@ impl GoogleOAuthClient {
                 .add_extra_param("access_type", "offline");
         }
 
-        let (url, csrf) = auth_request
-            .set_pkce_challenge(pkce_challenge)
-            .url();
+        let (url, csrf) = auth_request.set_pkce_challenge(pkce_challenge).url();
 
         (url, csrf, pkce_verifier)
     }

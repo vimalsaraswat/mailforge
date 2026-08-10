@@ -88,7 +88,10 @@ impl AuthService {
         })
     }
 
-    async fn sync_user(&self, profile: &crate::clients::google::models::GoogleUserInfo) -> Result<User, AuthServiceError> {
+    async fn sync_user(
+        &self,
+        profile: &crate::clients::google::models::GoogleUserInfo,
+    ) -> Result<User, AuthServiceError> {
         let now = Utc::now();
         if let Some(mut user) = self.users.find_by_provider("google", &profile.sub).await? {
             user.email = profile.email.clone();
@@ -151,7 +154,10 @@ impl AuthService {
         Ok(())
     }
 
-    async fn create_session(&self, user_id: Uuid) -> Result<crate::models::Session, AuthServiceError> {
+    async fn create_session(
+        &self,
+        user_id: Uuid,
+    ) -> Result<crate::models::Session, AuthServiceError> {
         let now = Utc::now();
         Ok(self
             .sessions

@@ -28,8 +28,11 @@ pub async fn google_login(
         AuthService::new(&state.db, state.config.clone()).start_google_login(include_gmail);
 
     let cookie_manager = cookies::CookieManager::new(state.config.clone());
-    let oauth_cookie =
-        cookie_manager.oauth_flow_cookie(csrf_state.secret(), pkce_verifier.secret(), include_gmail);
+    let oauth_cookie = cookie_manager.oauth_flow_cookie(
+        csrf_state.secret(),
+        pkce_verifier.secret(),
+        include_gmail,
+    );
 
     let mut response = Redirect::to(authorization_url.as_str()).into_response();
     response
@@ -77,7 +80,8 @@ pub async fn google_callback(
         Some(state) => state,
         None => return failure(StatusCode::BAD_REQUEST, "Missing OAuth state".to_string()),
     };
-    let (expected_state, pkce_verifier, should_connect) = match cookie_manager.oauth_flow(&headers) {
+    let (expected_state, pkce_verifier, should_connect) = match cookie_manager.oauth_flow(&headers)
+    {
         Some(flow) => flow,
         None => return failure(StatusCode::BAD_REQUEST, "Missing OAuth session".to_string()),
     };
@@ -125,7 +129,10 @@ pub async fn me(State(state): State<AppState>, headers: HeaderMap) -> Response {
         Ok(None) => return StatusCode::UNAUTHORIZED.into_response(),
         Err(error) => return errors::auth(error),
     };
-    let gmail_status = auth_service.get_gmail_connection_status(user.id).await.unwrap_or(None);
+    let gmail_status = auth_service
+        .get_gmail_connection_status(user.id)
+        .await
+        .unwrap_or(None);
 
     let mut response = MeResponse::from(user);
     response.gmail_connected = gmail_status.map(|s| s.0);
