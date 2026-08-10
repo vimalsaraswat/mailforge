@@ -62,10 +62,7 @@ impl EmailTemplateRepository {
         .await
     }
 
-    pub async fn find_by_user(
-        &self,
-        user_id: Uuid,
-    ) -> Result<Vec<EmailTemplate>, sqlx::Error> {
+    pub async fn find_by_user(&self, user_id: Uuid) -> Result<Vec<EmailTemplate>, sqlx::Error> {
         sqlx::query_as::<_, EmailTemplate>(
             r#"
             SELECT *
@@ -109,11 +106,7 @@ impl EmailTemplateRepository {
         .await
     }
 
-    pub async fn delete(
-        &self,
-        id: Uuid,
-        user_id: Uuid,
-    ) -> Result<bool, sqlx::Error> {
+    pub async fn delete(&self, id: Uuid, user_id: Uuid) -> Result<bool, sqlx::Error> {
         let result = sqlx::query(
             r#"
             DELETE FROM email_templates

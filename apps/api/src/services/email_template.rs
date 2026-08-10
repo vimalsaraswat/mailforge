@@ -1,3 +1,4 @@
+use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{models::EmailTemplate, repositories::email_template::EmailTemplateRepository};
@@ -7,8 +8,8 @@ pub struct EmailTemplateService {
 }
 
 impl EmailTemplateService {
-    pub fn new(repository: EmailTemplateRepository) -> Self {
-        Self { repository }
+    pub fn new(pool: &PgPool) -> Self {
+        Self { repository: EmailTemplateRepository::new(pool.clone()) }
     }
 
     pub async fn create(
