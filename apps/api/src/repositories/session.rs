@@ -76,4 +76,21 @@ impl SessionRepository {
 
         Ok(result.rows_affected())
     }
+
+    pub async fn find_valid(
+        &self,
+        id: Uuid,
+    ) -> Result<Option<Session>, sqlx::Error> {
+        sqlx::query_as::<_, Session>(
+            r#"
+            SELECT *
+            FROM sessions
+            WHERE id = $1
+              AND expires_at > NOW()
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+    }
 }
