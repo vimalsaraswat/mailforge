@@ -45,8 +45,17 @@ impl UserRepository {
         .await
     }
 
-    pub async fn create(&self, user: &User) -> Result<(), sqlx::Error> {
-        sqlx::query(
+    pub async fn create(
+        &self,
+        provider: &str,
+        provider_user_id: &str,
+        email: &str,
+        name: &str,
+        picture: Option<&str>,
+    ) -> Result<User, sqlx::Error> {
+        let id = Uuid::new_v4();
+
+        sqlx::query_as::<_, User>(
             r#"
             INSERT INTO users (
                 id,
@@ -54,27 +63,22 @@ impl UserRepository {
                 provider_user_id,
                 email,
                 name,
-                picture,
-                created_at,
-                updated_at
+                picture
             )
             VALUES (
-                $1, $2, $3, $4, $5, $6, $7, $8
+                $1, $2, $3, $4, $5, $6
             )
+            RETURNING *
             "#,
         )
-        .bind(user.id)
-        .bind(&user.provider)
-        .bind(&user.provider_user_id)
-        .bind(&user.email)
-        .bind(&user.name)
-        .bind(&user.picture)
-        .bind(user.created_at)
-        .bind(user.updated_at)
-        .execute(&self.pool)
-        .await?;
-
-        Ok(())
+        .bind(id)
+        .bind(provider)
+        .bind(provider_user_id)
+        .bind(email)
+        .bind(name)
+        .bind(picture)
+        .fetch_one(&self.pool)
+        .await
     }
 
     pub async fn update(&self, user: &User) -> Result<(), sqlx::Error> {
@@ -85,7 +89,7 @@ impl UserRepository {
                 email = $2,
                 name = $3,
                 picture = $4,
-                updated_at = $5
+                updated_at = NOW()
             WHERE id = $1
             "#,
         )
@@ -93,7 +97,6 @@ impl UserRepository {
         .bind(&user.email)
         .bind(&user.name)
         .bind(&user.picture)
-        .bind(user.updated_at)
         .execute(&self.pool)
         .await?;
 
