@@ -92,27 +92,23 @@ impl AuthService {
         &self,
         profile: &crate::clients::google::models::GoogleUserInfo,
     ) -> Result<User, AuthServiceError> {
-        let now = Utc::now();
         if let Some(mut user) = self.users.find_by_provider("google", &profile.sub).await? {
             user.email = profile.email.clone();
             user.name = profile.name.clone();
             user.picture = profile.picture.clone();
-            user.updated_at = now;
             self.users.update(&user).await?;
             Ok(user)
         } else {
-            let user = User {
-                id: Uuid::new_v4(),
-                provider: "google".to_string(),
-                provider_user_id: profile.sub.clone(),
-                email: profile.email.clone(),
-                name: profile.name.clone(),
-                picture: profile.picture.clone(),
-                created_at: now,
-                updated_at: now,
-            };
-            self.users.create(&user).await?;
-            Ok(user)
+            Ok(self
+                .users
+                .create(
+                    "google",
+                    &profile.sub,
+                    &profile.email,
+                    &profile.name,
+                    profile.picture.as_deref(),
+                )
+                .await?)
         }
     }
 
@@ -122,8 +118,9 @@ impl AuthService {
         profile: &crate::clients::google::models::GoogleUserInfo,
         token: &crate::clients::google::models::GoogleToken,
     ) -> Result<(), AuthServiceError> {
-        let now = Utc::now();
-        let expires_at = token.expires_at.unwrap_or_else(|| now + Duration::hours(1));
+        let expires_at = token
+            .expires_at
+            .unwrap_or_else(|| Utc::now() + Duration::hours(1));
         let existing_account = self
             .mail_accounts
             .find_by_provider("google", &profile.sub)
@@ -132,22 +129,19 @@ impl AuthService {
         if let Some(rt) = &token.refresh_token {
             if let Some(account) = existing_account {
                 self.mail_accounts
-                    .update_tokens(account.id, &token.access_token, rt, expires_at, now)
+                    .update_tokens(account.id, &token.access_token, rt, expires_at)
                     .await?;
             } else {
                 self.mail_accounts
-                    .create(&crate::models::MailAccount {
-                        id: Uuid::new_v4(),
-                        user_id: user.id,
-                        provider: "google".to_string(),
-                        account_id: profile.sub.clone(),
-                        email: profile.email.clone(),
-                        access_token: token.access_token.clone(),
-                        refresh_token: rt.clone(),
+                    .create(
+                        user.id,
+                        "google",
+                        &profile.sub,
+                        &profile.email,
+                        &token.access_token,
+                        rt,
                         expires_at,
-                        created_at: now,
-                        updated_at: now,
-                    })
+                    )
                     .await?;
             }
         }
@@ -158,15 +152,12 @@ impl AuthService {
         &self,
         user_id: Uuid,
     ) -> Result<crate::models::Session, AuthServiceError> {
-        let now = Utc::now();
         Ok(self
             .sessions
-            .create(&crate::models::Session {
-                id: Uuid::new_v4(),
+            .create(
                 user_id,
-                expires_at: now + Duration::seconds(self.session_ttl_seconds as i64),
-                created_at: now,
-            })
+                Utc::now() + Duration::seconds(self.session_ttl_seconds as i64),
+            )
             .await?)
     }
 
