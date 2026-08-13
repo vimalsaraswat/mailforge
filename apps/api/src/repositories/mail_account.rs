@@ -59,7 +59,18 @@ impl MailAccountRepository {
         .await
     }
 
-    pub async fn create(&self, account: &MailAccount) -> Result<MailAccount, sqlx::Error> {
+    pub async fn create(
+        &self,
+        user_id: Uuid,
+        provider: &str,
+        account_id: &str,
+        email: &str,
+        access_token: &str,
+        refresh_token: &str,
+        expires_at: chrono::DateTime<chrono::Utc>,
+    ) -> Result<MailAccount, sqlx::Error> {
+        let id = Uuid::new_v4();
+
         sqlx::query_as::<_, MailAccount>(
             r#"
             INSERT INTO mail_accounts (
@@ -70,26 +81,22 @@ impl MailAccountRepository {
                 email,
                 access_token,
                 refresh_token,
-                expires_at,
-                created_at,
-                updated_at
+                expires_at
             )
             VALUES (
-                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+                $1, $2, $3, $4, $5, $6, $7, $8
             )
             RETURNING *
             "#,
         )
-        .bind(account.id)
-        .bind(account.user_id)
-        .bind(&account.provider)
-        .bind(&account.account_id)
-        .bind(&account.email)
-        .bind(&account.access_token)
-        .bind(&account.refresh_token)
-        .bind(account.expires_at)
-        .bind(account.created_at)
-        .bind(account.updated_at)
+        .bind(id)
+        .bind(user_id)
+        .bind(provider)
+        .bind(account_id)
+        .bind(email)
+        .bind(access_token)
+        .bind(refresh_token)
+        .bind(expires_at)
         .fetch_one(&self.pool)
         .await
     }
@@ -100,7 +107,6 @@ impl MailAccountRepository {
         access_token: &str,
         refresh_token: &str,
         expires_at: chrono::DateTime<chrono::Utc>,
-        updated_at: chrono::DateTime<chrono::Utc>,
     ) -> Result<MailAccount, sqlx::Error> {
         sqlx::query_as::<_, MailAccount>(
             r#"
@@ -109,7 +115,7 @@ impl MailAccountRepository {
                 access_token = $2,
                 refresh_token = $3,
                 expires_at = $4,
-                updated_at = $5
+                updated_at = NOW()
             WHERE id = $1
             RETURNING *
             "#,
@@ -118,7 +124,6 @@ impl MailAccountRepository {
         .bind(access_token)
         .bind(refresh_token)
         .bind(expires_at)
-        .bind(updated_at)
         .fetch_one(&self.pool)
         .await
     }
