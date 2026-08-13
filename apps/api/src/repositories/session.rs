@@ -26,25 +26,29 @@ impl SessionRepository {
         .await
     }
 
-    pub async fn create(&self, session: &Session) -> Result<Session, sqlx::Error> {
+    pub async fn create(
+        &self,
+        user_id: Uuid,
+        expires_at: chrono::DateTime<chrono::Utc>,
+    ) -> Result<Session, sqlx::Error> {
+        let id = Uuid::new_v4();
+
         sqlx::query_as::<_, Session>(
             r#"
             INSERT INTO sessions (
                 id,
                 user_id,
-                expires_at,
-                created_at
+                expires_at
             )
             VALUES (
-                $1, $2, $3, $4
+                $1, $2, $3
             )
             RETURNING *
             "#,
         )
-        .bind(session.id)
-        .bind(session.user_id)
-        .bind(session.expires_at)
-        .bind(session.created_at)
+        .bind(id)
+        .bind(user_id)
+        .bind(expires_at)
         .fetch_one(&self.pool)
         .await
     }
