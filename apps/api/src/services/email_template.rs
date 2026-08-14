@@ -9,7 +9,9 @@ pub struct EmailTemplateService {
 
 impl EmailTemplateService {
     pub fn new(pool: &PgPool) -> Self {
-        Self { repository: EmailTemplateRepository::new(pool.clone()) }
+        Self {
+            repository: EmailTemplateRepository::new(pool.clone()),
+        }
     }
 
     pub async fn create(
