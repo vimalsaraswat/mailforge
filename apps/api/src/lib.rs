@@ -9,5 +9,5 @@ pub mod clients;
 pub mod config;
 pub mod db;
 pub mod http;
-pub mod state;
 pub mod middleware;
+pub mod state;
