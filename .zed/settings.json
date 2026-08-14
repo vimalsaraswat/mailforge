@@ -4,6 +4,23 @@
     "allowed": true,
   },
   "lsp": {
+    "vue": {
+      "initialization_options": {
+        "typescript": {
+          "tsdk": "apps/web/node_modules/typescript/lib",
+        },
+      },
+    },
+    "vtsls": {
+      "settings": {
+        "typescript": {
+          "tsdk": "apps/web/node_modules/typescript/lib",
+        },
+        "vtsls": {
+          "autoUseWorkspaceTsdk": true,
+        },
+      },
+    },
     "eslint": {
       "settings": {
         "configFile": "apps/web/eslint.config.mjs",
@@ -34,6 +51,7 @@
       "language_servers": [
         "tailwindcss-language-server",
         "vue-language-server",
+        "vtsls",
         "...",
       ],
       "formatter": {
