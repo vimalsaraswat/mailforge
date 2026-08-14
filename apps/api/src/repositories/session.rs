@@ -81,10 +81,7 @@ impl SessionRepository {
         Ok(result.rows_affected())
     }
 
-    pub async fn find_valid(
-        &self,
-        id: Uuid,
-    ) -> Result<Option<Session>, sqlx::Error> {
+    pub async fn find_valid(&self, id: Uuid) -> Result<Option<Session>, sqlx::Error> {
         sqlx::query_as::<_, Session>(
             r#"
             SELECT *
