@@ -2,7 +2,7 @@ import type { ApiClient } from '~/services/api'
 import type { EmailTemplate, EmailTemplateInput } from '~/types/email-template'
 
 const templateRoutes = {
-  list: '/templates/',
+  list: '/templates',
   byId: (id: string) => `/templates/${id}`,
 } as const
 
