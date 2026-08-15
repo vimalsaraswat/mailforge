@@ -29,7 +29,7 @@ fn template_router() -> Router<AppState> {
             get(controllers::email_template::list).post(controllers::email_template::create),
         )
         .route(
-            "/:id",
+            "/{id}",
             get(controllers::email_template::get)
                 .put(controllers::email_template::update)
                 .delete(controllers::email_template::delete),
