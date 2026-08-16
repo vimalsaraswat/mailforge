@@ -7,7 +7,13 @@ const authRoutes = {
   googleLogin: '/auth/google',
 } as const
 
-export function createAuthService(api: ApiClient, apiBase: string) {
+export interface AuthService {
+  getCurrentUser(): Promise<CurrentUser>
+  logout(): Promise<void>
+  getGoogleLoginUrl(connectGmail?: boolean): string
+}
+
+export function createAuthService(api: ApiClient, apiBase: string): AuthService {
   return {
     getCurrentUser() {
       return api.get<CurrentUser>(authRoutes.currentUser)
@@ -18,8 +24,10 @@ export function createAuthService(api: ApiClient, apiBase: string) {
     },
 
     getGoogleLoginUrl(connectGmail?: boolean) {
-      const url = `${apiBase}${authRoutes.googleLogin}`
-      return connectGmail ? `${url}?connect=true` : url
+      const url = new URL(authRoutes.googleLogin, apiBase)
+      if (connectGmail) url.searchParams.set('connect', 'true')
+
+      return url.toString()
     },
   }
 }

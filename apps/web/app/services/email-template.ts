@@ -6,7 +6,14 @@ const templateRoutes = {
   byId: (id: string) => `/templates/${id}`,
 } as const
 
-export function createEmailTemplateService(api: ApiClient) {
+export interface EmailTemplateService {
+  list(): Promise<EmailTemplate[]>
+  create(input: EmailTemplateInput): Promise<EmailTemplate>
+  update(id: string, input: EmailTemplateInput): Promise<EmailTemplate>
+  delete(id: string): Promise<void>
+}
+
+export function createEmailTemplateService(api: ApiClient): EmailTemplateService {
   return {
     list() {
       return api.get<EmailTemplate[]>(templateRoutes.list)
