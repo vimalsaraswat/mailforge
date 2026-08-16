@@ -1,11 +1,38 @@
+export type ApiRequestBody = BodyInit | object | null
+
 export interface ApiClient {
   get<T>(path: string): Promise<T>
-  post<T, B = unknown>(path: string, body?: B): Promise<T>
-  put<T, B = unknown>(path: string, body: B): Promise<T>
-  delete<T>(path: string): Promise<T>
+  post<T>(path: string, body?: ApiRequestBody): Promise<T>
+  put<T>(path: string, body: ApiRequestBody): Promise<T>
+  delete<T = void>(path: string): Promise<T>
 }
 
-// TODO: make more typesafe
+export interface ApiErrorData {
+  message?: string
+}
+
+interface FetchErrorLike {
+  data?: unknown
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+/** Returns the API's human-readable error response when one is available. */
+export function getApiErrorMessage(error: unknown): string | null {
+  if (!isRecord(error)) return null
+
+  const { data } = error as FetchErrorLike
+  if (typeof data === 'string' && data.trim()) return data
+
+  if (isRecord(data) && typeof data.message === 'string' && data.message.trim()) {
+    return data.message
+  }
+
+  return null
+}
+
 export function createApiClient(baseURL: string): ApiClient {
   return {
     get<T>(path: string) {
@@ -15,7 +42,7 @@ export function createApiClient(baseURL: string): ApiClient {
       })
     },
 
-    post<T, B extends BodyInit | Record<string, any> | null | undefined>(path: string, body?: B) {
+    post<T>(path: string, body?: ApiRequestBody) {
       return $fetch<T>(path, {
         method: 'POST',
         baseURL,
@@ -24,7 +51,7 @@ export function createApiClient(baseURL: string): ApiClient {
       })
     },
 
-    put<T, B extends BodyInit | Record<string, any> | null | undefined>(path: string, body: B) {
+    put<T>(path: string, body: ApiRequestBody) {
       return $fetch<T>(path, {
         method: 'PUT',
         baseURL,
