@@ -10,32 +10,43 @@ export function useAuth() {
   const user = ref<CurrentUser | null>(null)
   const loading = ref(true)
   const loggingOut = ref(false)
+  let requestVersion = 0
 
-  async function loadUser() {
+  async function loadUser(): Promise<CurrentUser | null> {
+    const version = ++requestVersion
+    loading.value = true
+
     try {
-      user.value = await auth.getCurrentUser()
+      const currentUser = await auth.getCurrentUser()
+      if (version === requestVersion) user.value = currentUser
+
+      return currentUser
     } catch {
-      user.value = null
+      if (version === requestVersion) user.value = null
+
+      return null
     } finally {
-      loading.value = false
+      if (version === requestVersion) loading.value = false
     }
   }
 
-  function signInWithGoogle() {
+  function signInWithGoogle(): void {
     window.location.assign(auth.getGoogleLoginUrl())
   }
 
-  async function logout() {
+  async function logout(): Promise<void> {
+    const version = ++requestVersion
     loggingOut.value = true
+
     try {
       await auth.logout()
-      user.value = null
+      if (version === requestVersion) user.value = null
     } finally {
-      loggingOut.value = false
+      if (version === requestVersion) loggingOut.value = false
     }
   }
 
-  onMounted(loadUser)
+  onMounted(() => void loadUser())
 
   return {
     user: readonly(user),
