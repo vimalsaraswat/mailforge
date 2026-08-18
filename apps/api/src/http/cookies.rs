@@ -21,12 +21,12 @@ impl CookieManager {
             SESSION_COOKIE,
             &session_id.to_string(),
             "/",
-            self.config.session_ttl_seconds,
+            Some(self.config.session_ttl_seconds),
         )
     }
 
     pub fn expired_session_cookie(&self) -> String {
-        self.build_cookie(SESSION_COOKIE, "", "/", 0)
+        self.build_cookie(SESSION_COOKIE, "", "/", None)
     }
 
     pub fn oauth_flow_cookie(&self, state: &str, verifier: &str, connect: bool) -> String {
@@ -34,12 +34,12 @@ impl CookieManager {
             OAUTH_FLOW_COOKIE,
             &format!("{state}.{verifier}.{connect}"),
             "/auth/google",
-            600,
+            Some(600),
         )
     }
 
     pub fn expired_oauth_flow_cookie(&self) -> String {
-        self.build_cookie(OAUTH_FLOW_COOKIE, "", "/auth/google", 0)
+        self.build_cookie(OAUTH_FLOW_COOKIE, "", "/auth/google", None)
     }
 
     pub fn session_id(&self, headers: &HeaderMap) -> Option<Uuid> {
@@ -49,13 +49,10 @@ impl CookieManager {
 
     pub fn oauth_flow(&self, headers: &HeaderMap) -> Option<(String, String, bool)> {
         let val = self.cookie_value(headers, OAUTH_FLOW_COOKIE)?;
-        let parts: Vec<&str> = val.split('.').collect();
-        if parts.len() < 3 {
-            return None;
-        }
-        let state = parts[0].to_string();
-        let verifier = parts[1].to_string();
-        let connect = parts[2].parse::<bool>().unwrap_or(false);
+        let mut parts = val.splitn(3, '.');
+        let state = parts.next()?.to_string();
+        let verifier = parts.next()?.to_string();
+        let connect = parts.next()?.parse::<bool>().unwrap_or(false);
         Some((state, verifier, connect))
     }
 
@@ -67,17 +64,21 @@ impl CookieManager {
         })
     }
 
-    fn build_cookie(&self, name: &str, value: &str, path: &str, max_age: u64) -> String {
-        let max_age = cookie::time::Duration::seconds(max_age.min(i64::MAX as u64) as i64);
-
-        Cookie::build((name, value))
+    fn build_cookie(&self, name: &str, value: &str, path: &str, max_age: Option<u64>) -> String {
+        let mut builder = Cookie::build((name, value))
             .path(path)
             .http_only(true)
             .same_site(SameSite::Lax)
-            .secure(self.config.cookie_secure)
-            .max_age(max_age)
-            .build()
-            .to_string()
+            .secure(self.config.cookie_secure);
+
+        if let Some(age) = max_age {
+            let duration = cookie::time::Duration::seconds(age.min(i64::MAX as u64) as i64);
+            builder = builder.max_age(duration);
+        } else {
+            builder = builder.max_age(cookie::time::Duration::seconds(0));
+        }
+
+        builder.build().to_string()
     }
 }
 
