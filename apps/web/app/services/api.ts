@@ -34,38 +34,31 @@ export function getApiErrorMessage(error: unknown): string | null {
 }
 
 export function createApiClient(baseURL: string): ApiClient {
+  const client = $fetch.create({
+    baseURL,
+    credentials: 'include',
+    async onResponseError({ response }) {
+      if (response.status === 401) {
+        // Handle unauthorized access globally
+      }
+    },
+  })
+
   return {
     get<T>(path: string) {
-      return $fetch<T>(path, {
-        baseURL,
-        credentials: 'include',
-      })
+      return client<T>(path)
     },
 
     post<T>(path: string, body?: ApiRequestBody) {
-      return $fetch<T>(path, {
-        method: 'POST',
-        baseURL,
-        credentials: 'include',
-        body,
-      })
+      return client<T>(path, { method: 'POST', body })
     },
 
     put<T>(path: string, body: ApiRequestBody) {
-      return $fetch<T>(path, {
-        method: 'PUT',
-        baseURL,
-        credentials: 'include',
-        body,
-      })
+      return client<T>(path, { method: 'PUT', body })
     },
 
     delete<T>(path: string) {
-      return $fetch<T>(path, {
-        method: 'DELETE',
-        baseURL,
-        credentials: 'include',
-      })
+      return client<T>(path, { method: 'DELETE' })
     },
   }
 }
