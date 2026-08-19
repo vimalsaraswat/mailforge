@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import type { CurrentUser } from '~/types/auth'
-import { createApiClient } from '~/services/api'
-import { createAuthService } from '~/services/auth'
 
-defineProps<{ user: CurrentUser; loggingOut: boolean }>()
+defineProps<{
+  user: CurrentUser
+  loggingOut: boolean
+  gmailConnectUrl: string
+}>()
+
 const emit = defineEmits<{ logout: [] }>()
-
-const config = useRuntimeConfig()
-const authService = createAuthService(createApiClient(config.public.apiBase), config.public.apiBase)
-const connectGmailUrl = authService.getGoogleLoginUrl(true)
 </script>
 
 <template>
@@ -41,7 +40,7 @@ const connectGmailUrl = authService.getGoogleLoginUrl(true)
         icon="i-lucide-mail"
         block
         size="lg"
-        :to="user.gmail_connected ? undefined : connectGmailUrl"
+        :to="user.gmail_connected ? undefined : gmailConnectUrl"
         :disabled="!!user.gmail_connected"
       />
       <UButton
