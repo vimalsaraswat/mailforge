@@ -1,78 +1,59 @@
-import { createApiClient, getApiErrorMessage } from '~/services/api'
-import { createEmailTemplateService } from '~/services/email-template'
-import type { EmailTemplate, EmailTemplateInput } from '~/types/email-template'
-
-function messageFor(error: unknown, fallback: string): string {
-  return getApiErrorMessage(error) ?? fallback
-}
+import { templateRoutes } from "~/services/email-template";
+import type { EmailTemplate, EmailTemplateInput } from "~/types/email-template";
 
 export function useEmailTemplates() {
-  const config = useRuntimeConfig()
-  const service = createEmailTemplateService(createApiClient(config.public.apiBase))
+  const {
+    data: templates,
+    refresh,
+    pending: loading,
+    error,
+  } = useAPI<EmailTemplate[]>(templateRoutes.list);
+  const baseURL = useRuntimeConfig().public.apiBase;
 
-  const templates = ref<EmailTemplate[]>([])
-  const loading = ref(true)
-  const saving = ref(false)
-  const deleting = ref(false)
-  const error = ref<string | null>(null)
-
-  async function refresh(): Promise<EmailTemplate[]> {
-    loading.value = true
-    error.value = null
-
-    try {
-      templates.value = await service.list()
-      return templates.value
-    } catch (caught) {
-      error.value = messageFor(
-        caught,
-        'Something went wrong while loading your templates. Please try again.',
-      )
-      return []
-    } finally {
-      loading.value = false
-    }
-  }
+  const saving = ref(false);
+  const deleting = ref(false);
 
   async function save(id: string | null, input: EmailTemplateInput): Promise<EmailTemplate | null> {
-    saving.value = true
-    error.value = null
-
+    saving.value = true;
     try {
-      const template = id ? await service.update(id, input) : await service.create(input)
-      const index = templates.value.findIndex(({ id }) => id === template.id)
-
-      if (index === -1) templates.value.unshift(template)
-      else templates.value.splice(index, 1, template)
-
-      return template
-    } catch (caught) {
-      error.value = messageFor(
-        caught,
-        'Something went wrong while saving your template. Please try again.',
-      )
-      return null
+      if (id) {
+        const response = await $fetch<EmailTemplate>(templateRoutes.update(id), {
+          method: "PUT",
+          baseURL,
+          body: input,
+          credentials: "include",
+        });
+        await refresh();
+        return response;
+      } else {
+        const response = await $fetch<EmailTemplate>(templateRoutes.create, {
+          method: "POST",
+          baseURL,
+          body: input,
+          credentials: "include",
+        });
+        await refresh();
+        return response;
+      }
     } finally {
-      saving.value = false
+      saving.value = false;
     }
   }
 
   async function remove(id: string): Promise<boolean> {
-    deleting.value = true
-    error.value = null
-
+    deleting.value = true;
     try {
-      await service.delete(id)
-      templates.value = templates.value.filter((template) => template.id !== id)
-      return true
-    } catch (caught) {
-      error.value = messageFor(
-        caught,
-        'Something went wrong while deleting your template. Please try again.',
-      )
-      return false
+      await $fetch(templateRoutes.delete(id), {
+        method: "DELETE",
+        baseURL,
+        credentials: "include",
+      });
+      await refresh();
+      return true;
+    } catch {
+      return false;
     } finally {
-      deleting.value = false
+      deleting.value = false;
     }
   }
 
@@ -85,5 +66,5 @@ export function useEmailTemplates() {
     refresh,
     save,
     remove,
-  }
+  };
 }
