@@ -8,7 +8,6 @@ export function useEmailTemplates() {
     pending: loading,
     error,
   } = useAPI<EmailTemplate[]>(templateRoutes.list);
-  const baseURL = useRuntimeConfig().public.apiBase;
 
   const saving = ref(false);
   const deleting = ref(false);
@@ -16,25 +15,18 @@ export function useEmailTemplates() {
   async function save(id: string | null, input: EmailTemplateInput): Promise<EmailTemplate | null> {
     saving.value = true;
     try {
-      if (id) {
-        const response = await $fetch<EmailTemplate>(templateRoutes.update(id), {
-          method: "PUT",
-          baseURL,
-          body: input,
-          credentials: "include",
-        });
-        await refresh();
-        return response;
-      } else {
-        const response = await $fetch<EmailTemplate>(templateRoutes.create, {
-          method: "POST",
-          baseURL,
-          body: input,
-          credentials: "include",
-        });
-        await refresh();
-        return response;
-      }
+      const response = id
+        ? await $api<EmailTemplate>(templateRoutes.update(id), {
+            method: "PUT",
+            body: input,
+          })
+        : await $api<EmailTemplate>(templateRoutes.create, {
+            method: "POST",
+            body: input,
+          });
+
+      await refresh();
+      return response;
     } finally {
       saving.value = false;
     }
@@ -43,11 +35,7 @@ export function useEmailTemplates() {
   async function remove(id: string): Promise<boolean> {
     deleting.value = true;
     try {
-      await $fetch(templateRoutes.delete(id), {
-        method: "DELETE",
-        baseURL,
-        credentials: "include",
-      });
+      await $api(templateRoutes.delete(id), { method: "DELETE" });
       await refresh();
       return true;
     } catch {
