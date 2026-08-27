@@ -1,4 +1,4 @@
-import { authRoutes } from "~/services/auth";
+import { authRoutes } from "~/api/auth";
 import type { CurrentUser } from "~/types/auth";
 
 export function useAuth() {

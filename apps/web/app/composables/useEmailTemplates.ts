@@ -1,4 +1,4 @@
-import { templateRoutes } from "~/services/email-template";
+import { templateRoutes } from "~/api/email-template";
 import type { EmailTemplate, EmailTemplateInput } from "~/types/email-template";
 
 export function useEmailTemplates() {
