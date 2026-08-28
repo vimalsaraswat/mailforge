@@ -1,10 +1,17 @@
 <script setup lang="ts">
 const { user, loading, signInWithGoogle } = useAuth();
-
+const router = useRouter();
 const isHydrated = ref(false);
 
 onMounted(() => {
   isHydrated.value = true;
+});
+
+// Automatically navigate to dashboard if user is authenticated
+watchEffect(() => {
+  if (isHydrated.value && !loading.value && user.value) {
+    router.push("/dashboard");
+  }
 });
 </script>
 
