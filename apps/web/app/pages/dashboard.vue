@@ -1,22 +1,90 @@
+<script setup lang="ts">
+const { user, logout, loggingOut } = useAuth();
+</script>
+
 <template>
-  <div class="p-6">
-    <h1 class="text-2xl font-bold mb-6">Dashboard</h1>
+  <div class="flex min-h-screen bg-muted">
+    <!-- Sidebar Navigation -->
+    <aside
+      class="hidden lg:flex w-64 flex-col border-r border-default bg-default p-6 justify-between"
+    >
+      <div class="space-y-6">
+        <!-- Logo/Brand Header -->
+        <div class="flex items-center gap-2 font-bold text-highlighted px-2">
+          <span class="grid size-8 place-items-center rounded-lg bg-primary text-primary-contrast">
+            <UIcon name="i-lucide-mail" class="size-4" />
+          </span>
+          Mailforge
+        </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="p-4 bg-white rounded-lg shadow border">
-        <h2 class="text-gray-500 text-sm">Total Templates</h2>
-        <p class="text-3xl font-semibold">12</p>
+        <!-- Vertical Navigation Menu -->
+        <UNavigationMenu
+          :items="[
+            { label: 'Templates', icon: 'i-lucide-layout-template', to: '/dashboard' },
+            { label: 'Settings', icon: 'i-lucide-settings', to: '/dashboard' },
+          ]"
+          orientation="vertical"
+          class="w-full"
+        />
       </div>
 
-      <div class="p-4 bg-white rounded-lg shadow border">
-        <h2 class="text-gray-500 text-sm">Sent Emails (30d)</h2>
-        <p class="text-3xl font-semibold">1,240</p>
+      <!-- User Profile / Footer / Logout -->
+      <div class="border-t border-default pt-4 space-y-4">
+        <div v-if="user" class="flex items-center justify-between gap-3 px-2">
+          <div class="flex items-center gap-3 overflow-hidden">
+            <UAvatar
+              :src="user.picture ?? undefined"
+              :alt="user.name"
+              :text="user.name.charAt(0).toUpperCase()"
+              size="sm"
+            />
+            <div class="truncate text-xs">
+              <p class="font-medium text-highlighted truncate">{{ user.name }}</p>
+              <p class="text-muted truncate">{{ user.email }}</p>
+            </div>
+          </div>
+          <UButton
+            icon="i-lucide-log-out"
+            variant="ghost"
+            color="neutral"
+            size="xs"
+            :loading="loggingOut"
+            @click="logout"
+          />
+        </div>
       </div>
+    </aside>
 
-      <div class="p-4 bg-white rounded-lg shadow border">
-        <h2 class="text-gray-500 text-sm">Active Campaigns</h2>
-        <p class="text-3xl font-semibold">3</p>
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col min-w-0">
+      <header
+        class="h-16 border-b border-default bg-default px-6 flex items-center justify-between"
+      >
+        <div class="flex items-center gap-2 font-bold text-highlighted lg:hidden">
+          <span class="grid size-8 place-items-center rounded-lg bg-primary text-primary-contrast">
+            <UIcon name="i-lucide-mail" class="size-4" />
+          </span>
+          Mailforge
+        </div>
+        <div class="flex items-center gap-4 ml-auto">
+          <UButton
+            v-if="user"
+            icon="i-lucide-log-out"
+            variant="ghost"
+            color="neutral"
+            size="sm"
+            label="Logout"
+            class="lg:hidden"
+            :loading="loggingOut"
+            @click="logout"
+          />
+        </div>
+      </header>
+
+      <!-- Templates Dashboard Content -->
+      <div class="flex-1 w-full">
+        <TemplatesManager />
       </div>
-    </div>
+    </main>
   </div>
 </template>
