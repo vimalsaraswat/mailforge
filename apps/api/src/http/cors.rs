@@ -1,4 +1,4 @@
-use axum::http::{HeaderValue, Method};
+use axum::http::{HeaderValue, Method, header};
 use tower_http::cors::CorsLayer;
 
 use crate::config::Config;
@@ -11,6 +11,11 @@ pub fn layer(config: &Config) -> CorsLayer {
                 .parse::<HeaderValue>()
                 .expect("FRONTEND_URL must be a valid origin"),
         )
+        .allow_headers([
+            header::AUTHORIZATION,
+            header::ACCEPT,
+            header::CONTENT_TYPE,
+        ])
         .allow_methods([
             Method::GET,
             Method::POST,
