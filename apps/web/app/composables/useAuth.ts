@@ -22,6 +22,7 @@ export function useAuth() {
   async function logout(): Promise<void> {
     clearUser();
     await logoutUser();
+    navigateTo("/");
   }
 
   return {
