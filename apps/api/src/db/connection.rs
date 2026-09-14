@@ -1,8 +1,12 @@
 use sqlx::{PgPool, postgres::PgPoolOptions};
+use tracing::info;
 
 pub async fn connect(database_url: &str) -> Result<PgPool, sqlx::Error> {
-    PgPoolOptions::new()
+    info!("Initializing PostgreSQL connection pool");
+    let pool = PgPoolOptions::new()
         .max_connections(10)
         .connect(database_url)
-        .await
+        .await?;
+    info!("PostgreSQL connection pool established");
+    Ok(pool)
 }
