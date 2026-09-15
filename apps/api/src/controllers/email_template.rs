@@ -57,6 +57,8 @@ pub async fn create(
         .create(user.id, &request.name, &request.subject, &request.body)
         .await?;
 
+    tracing::info!(user_id = %user.id, template_id = %template.id, "Created email template");
+
     Ok((
         StatusCode::CREATED,
         Json(EmailTemplateResponse::from(template)),
@@ -76,6 +78,8 @@ pub async fn update(
         .await?
         .ok_or(EmailTemplateError::NotFound)?;
 
+    tracing::info!(user_id = %user.id, template_id = %id, "Updated email template");
+
     Ok(Json(EmailTemplateResponse::from(template)))
 }
 
@@ -89,6 +93,8 @@ pub async fn delete(
     if !service.delete(user.id, id).await? {
         return Err(EmailTemplateError::NotFound);
     }
+
+    tracing::info!(user_id = %user.id, template_id = %id, "Deleted email template");
 
     Ok(StatusCode::NO_CONTENT)
 }

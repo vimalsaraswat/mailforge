@@ -32,13 +32,19 @@ where
         let session = SessionRepository::new(db.clone())
             .find_valid(session_id)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .map_err(|err| {
+                tracing::error!(?err, %session_id, "Failed to query session");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?
             .ok_or(StatusCode::UNAUTHORIZED)?;
 
         let user = UserRepository::new(db.clone())
             .find_by_id(session.user_id)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .map_err(|err| {
+                tracing::error!(?err, user_id = %session.user_id, "Failed to query user");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?
             .ok_or(StatusCode::UNAUTHORIZED)?;
 
         Ok(Self { user })

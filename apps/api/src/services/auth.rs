@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::clients::google::oauth::GoogleOAuthClient;
 use crate::config::Config;
 use crate::models::User;
-use crate::repositories::mail_account::MailAccountRepository;
+use crate::repositories::mail_account::{MailAccountRepository, NewMailAccount};
 use crate::repositories::session::SessionRepository;
 use crate::repositories::user::UserRepository;
 use crate::services::errors::AuthServiceError;
@@ -28,9 +28,9 @@ impl AuthService {
             mail_accounts: MailAccountRepository::new(pool.clone()),
             sessions: SessionRepository::new(pool.clone()),
             oauth: GoogleOAuthClient::new(
-                config.google_client_id.clone(),
-                config.google_client_secret.clone(),
-                config.google_redirect_uri.clone(),
+                config.google_client_id,
+                config.google_client_secret,
+                config.google_redirect_uri,
             ),
             session_ttl_seconds: config.session_ttl_seconds,
         }
@@ -126,23 +126,36 @@ impl AuthService {
             .find_by_provider("google", &profile.sub)
             .await?;
 
-        if let Some(rt) = &token.refresh_token {
-            if let Some(account) = existing_account {
+        match (existing_account, &token.refresh_token) {
+            (Some(account), Some(rt)) => {
                 self.mail_accounts
                     .update_tokens(account.id, &token.access_token, rt, expires_at)
                     .await?;
-            } else {
+            }
+            (Some(account), None) => {
                 self.mail_accounts
-                    .create(
-                        user.id,
-                        "google",
-                        &profile.sub,
-                        &profile.email,
-                        &token.access_token,
-                        rt,
-                        expires_at,
-                    )
+                    .update_access_token(account.id, &token.access_token, expires_at)
                     .await?;
+            }
+            (None, Some(rt)) => {
+                self.mail_accounts
+                    .create(NewMailAccount {
+                        user_id: user.id,
+                        provider: "google",
+                        account_id: &profile.sub,
+                        email: &profile.email,
+                        access_token: &token.access_token,
+                        refresh_token: rt,
+                        expires_at,
+                    })
+                    .await?;
+            }
+            (None, None) => {
+                tracing::warn!(
+                    user_id = %user.id,
+                    email = %profile.email,
+                    "Google did not provide a refresh token for new mail account linking"
+                );
             }
         }
         Ok(())

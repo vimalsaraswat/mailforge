@@ -11,6 +11,11 @@ use crate::{
     state::AppState,
 };
 
+#[derive(Debug, Default, Deserialize)]
+pub struct GoogleLoginQuery {
+    pub connect: Option<bool>,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct GoogleCallbackQuery {
     pub code: Option<String>,
@@ -20,9 +25,9 @@ pub struct GoogleCallbackQuery {
 
 pub async fn google_login(
     State(state): State<AppState>,
-    Query(query): Query<std::collections::HashMap<String, String>>,
+    Query(query): Query<GoogleLoginQuery>,
 ) -> Response {
-    let include_gmail = query.get("connect").map(|v| v == "true").unwrap_or(false);
+    let include_gmail = query.connect.unwrap_or(false);
 
     let (authorization_url, csrf_state, pkce_verifier) =
         AuthService::new(&state.db, state.config.clone()).start_google_login(include_gmail);
@@ -70,6 +75,7 @@ pub async fn google_callback(
     let code = match query.code {
         Some(code) => code,
         None => {
+            tracing::warn!("Google OAuth callback missing authorization code");
             return failure(
                 StatusCode::BAD_REQUEST,
                 "Missing Google authorization code".to_string(),
@@ -78,14 +84,21 @@ pub async fn google_callback(
     };
     let returned_state = match query.state {
         Some(state) => state,
-        None => return failure(StatusCode::BAD_REQUEST, "Missing OAuth state".to_string()),
+        None => {
+            tracing::warn!("Google OAuth callback missing state parameter");
+            return failure(StatusCode::BAD_REQUEST, "Missing OAuth state".to_string());
+        }
     };
     let (expected_state, pkce_verifier, should_connect) = match cookie_manager.oauth_flow(&headers)
     {
         Some(flow) => flow,
-        None => return failure(StatusCode::BAD_REQUEST, "Missing OAuth session".to_string()),
+        None => {
+            tracing::warn!("Missing or expired OAuth flow cookie");
+            return failure(StatusCode::BAD_REQUEST, "Missing OAuth session".to_string());
+        }
     };
     if returned_state != expected_state {
+        tracing::warn!("Google OAuth state mismatch");
         return failure(StatusCode::BAD_REQUEST, "Invalid OAuth state".to_string());
     }
 
@@ -103,6 +116,8 @@ pub async fn google_callback(
             return response;
         }
     };
+
+    tracing::info!(session_id = %login.session_id, "Google authentication successful");
 
     let mut response = Redirect::to(&state.config.frontend_url).into_response();
     let cookies = vec![
@@ -151,6 +166,7 @@ pub async fn logout(State(state): State<AppState>, headers: HeaderMap) -> Respon
         if let Err(err) = auth_service.logout(session_id).await {
             return errors::auth(err);
         }
+        tracing::info!(session_id = %session_id, "User logged out");
     }
 
     let mut response = StatusCode::NO_CONTENT.into_response();
