@@ -19,7 +19,7 @@ impl IntoResponse for EmailTemplateError {
         let (status, message) = match self {
             Self::NotFound => (StatusCode::NOT_FOUND, "Email template not found"),
             Self::Database(error) => {
-                tracing::error!(?error, "email template request failed");
+                tracing::error!(?error, "Email template database operation failed");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "Email template storage failed",
@@ -32,7 +32,7 @@ impl IntoResponse for EmailTemplateError {
 }
 
 pub fn auth(error: AuthServiceError) -> Response {
-    tracing::error!(?error, "authentication request failed");
+    tracing::error!(?error, "Authentication request failed");
 
     let (status, message) = match error {
         AuthServiceError::NotConfigured => (
