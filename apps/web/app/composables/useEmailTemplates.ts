@@ -4,16 +4,23 @@ import type { EmailTemplate, EmailTemplateInput } from "~/types/email-template";
 export function useEmailTemplates() {
   const {
     data: templates,
-    refresh,
+    execute: refresh,
     pending: loading,
-    error,
-  } = useAPI<EmailTemplate[]>(templateRoutes.list);
+    error: loadError,
+  } = useAPI<EmailTemplate[]>(templateRoutes.list, { immediate: false });
 
   const saving = ref(false);
   const deleting = ref(false);
+  const mutationError = shallowRef<Error | null>(null);
+  const error = computed(() => mutationError.value ?? loadError.value);
+
+  function setMutationError(cause: unknown): void {
+    mutationError.value = cause instanceof Error ? cause : new Error("Unable to update template.");
+  }
 
   async function save(id: string | null, input: EmailTemplateInput): Promise<EmailTemplate | null> {
     saving.value = true;
+    mutationError.value = null;
     try {
       const response = id
         ? await $api<EmailTemplate>(templateRoutes.update(id), {
@@ -27,6 +34,9 @@ export function useEmailTemplates() {
 
       await refresh();
       return response;
+    } catch (cause) {
+      setMutationError(cause);
+      return null;
     } finally {
       saving.value = false;
     }
@@ -34,11 +44,13 @@ export function useEmailTemplates() {
 
   async function remove(id: string): Promise<boolean> {
     deleting.value = true;
+    mutationError.value = null;
     try {
       await $api(templateRoutes.delete(id), { method: "DELETE" });
       await refresh();
       return true;
-    } catch {
+    } catch (cause) {
+      setMutationError(cause);
       return false;
     } finally {
       deleting.value = false;
