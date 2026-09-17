@@ -3,6 +3,17 @@ use uuid::Uuid;
 
 use crate::models::MailAccount;
 
+#[derive(Debug, Clone)]
+pub struct NewMailAccount<'a> {
+    pub user_id: Uuid,
+    pub provider: &'a str,
+    pub account_id: &'a str,
+    pub email: &'a str,
+    pub access_token: &'a str,
+    pub refresh_token: &'a str,
+    pub expires_at: chrono::DateTime<chrono::Utc>,
+}
+
 #[derive(Clone)]
 pub struct MailAccountRepository {
     pool: PgPool,
@@ -59,16 +70,7 @@ impl MailAccountRepository {
         .await
     }
 
-    pub async fn create(
-        &self,
-        user_id: Uuid,
-        provider: &str,
-        account_id: &str,
-        email: &str,
-        access_token: &str,
-        refresh_token: &str,
-        expires_at: chrono::DateTime<chrono::Utc>,
-    ) -> Result<MailAccount, sqlx::Error> {
+    pub async fn create(&self, params: NewMailAccount<'_>) -> Result<MailAccount, sqlx::Error> {
         let id = Uuid::new_v4();
 
         sqlx::query_as::<_, MailAccount>(
@@ -90,13 +92,13 @@ impl MailAccountRepository {
             "#,
         )
         .bind(id)
-        .bind(user_id)
-        .bind(provider)
-        .bind(account_id)
-        .bind(email)
-        .bind(access_token)
-        .bind(refresh_token)
-        .bind(expires_at)
+        .bind(params.user_id)
+        .bind(params.provider)
+        .bind(params.account_id)
+        .bind(params.email)
+        .bind(params.access_token)
+        .bind(params.refresh_token)
+        .bind(params.expires_at)
         .fetch_one(&self.pool)
         .await
     }
@@ -123,6 +125,30 @@ impl MailAccountRepository {
         .bind(id)
         .bind(access_token)
         .bind(refresh_token)
+        .bind(expires_at)
+        .fetch_one(&self.pool)
+        .await
+    }
+
+    pub async fn update_access_token(
+        &self,
+        id: Uuid,
+        access_token: &str,
+        expires_at: chrono::DateTime<chrono::Utc>,
+    ) -> Result<MailAccount, sqlx::Error> {
+        sqlx::query_as::<_, MailAccount>(
+            r#"
+            UPDATE mail_accounts
+            SET
+                access_token = $2,
+                expires_at = $3,
+                updated_at = NOW()
+            WHERE id = $1
+            RETURNING *
+            "#,
+        )
+        .bind(id)
+        .bind(access_token)
         .bind(expires_at)
         .fetch_one(&self.pool)
         .await
