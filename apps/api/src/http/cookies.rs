@@ -85,3 +85,49 @@ impl CookieManager {
 pub fn cookie_header(value: &str) -> HeaderValue {
     HeaderValue::from_str(value).expect("cookie value must be a valid header")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_config() -> Config {
+        Config {
+            host: "127.0.0.1".into(),
+            port: 3000,
+            database_url: "postgres://localhost/test".into(),
+            google_client_id: "id".into(),
+            google_client_secret: "sec".into(),
+            google_redirect_uri: "http://localhost/callback".into(),
+            frontend_url: "http://localhost:3001".into(),
+            session_ttl_seconds: 3600,
+            cookie_secure: false,
+        }
+    }
+
+    #[test]
+    fn test_session_id_extraction() {
+        let manager = CookieManager::new(test_config());
+        let session_id = Uuid::new_v4();
+        let cookie_str = format!("mailforge_session={}", session_id);
+
+        let mut headers = HeaderMap::new();
+        headers.insert(header::COOKIE, HeaderValue::from_str(&cookie_str).unwrap());
+
+        assert_eq!(manager.session_id(&headers), Some(session_id));
+    }
+
+    #[test]
+    fn test_oauth_flow_extraction() {
+        let manager = CookieManager::new(test_config());
+        let cookie_str = "mailforge_oauth_flow=my_state.my_verifier.true";
+
+        let mut headers = HeaderMap::new();
+        headers.insert(header::COOKIE, HeaderValue::from_str(cookie_str).unwrap());
+
+        let flow = manager.oauth_flow(&headers);
+        assert_eq!(
+            flow,
+            Some(("my_state".into(), "my_verifier".into(), true))
+        );
+    }
+}
