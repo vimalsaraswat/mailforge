@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import type { CurrentUser } from '~/types/auth'
+import type { CurrentUser } from "~/types/auth";
 
 defineProps<{
-  user: CurrentUser
-  loggingOut: boolean
-  gmailConnectUrl: string
-}>()
+  user: CurrentUser;
+  loggingOut: boolean;
+  // gmailConnectUrl: string;
+}>();
 
-const emit = defineEmits<{ logout: [] }>()
+const emit = defineEmits<{ logout: [] }>();
 </script>
 
 <template>
@@ -40,7 +40,6 @@ const emit = defineEmits<{ logout: [] }>()
         icon="i-lucide-mail"
         block
         size="lg"
-        :to="user.gmail_connected ? undefined : gmailConnectUrl"
         :disabled="!!user.gmail_connected"
       />
       <UButton
