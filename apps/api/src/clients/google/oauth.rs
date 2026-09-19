@@ -1,9 +1,13 @@
-use crate::clients::google::models::{GoogleToken, GoogleUserInfo};
+use std::time::Duration;
+
+use chrono::Utc;
 use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, EndpointNotSet, EndpointSet,
     PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, RefreshToken, Scope, TokenResponse, TokenUrl,
     basic::BasicClient, url,
 };
+
+use crate::clients::google::models::{GoogleToken, GoogleUserInfo};
 
 type GoogleClient = BasicClient<
     EndpointSet,    // Auth URL
@@ -19,10 +23,7 @@ const USERINFO_URL: &str = "https://www.googleapis.com/oauth2/v3/userinfo";
 
 #[derive(Clone)]
 pub struct GoogleOAuthClient {
-    client_id: ClientId,
-    client_secret: ClientSecret,
-    redirect_uri: RedirectUrl,
-
+    client: GoogleClient,
     http: reqwest::Client,
 }
 
@@ -30,23 +31,17 @@ impl GoogleOAuthClient {
     pub fn new(client_id: String, client_secret: String, redirect_uri: String) -> Self {
         let http = reqwest::ClientBuilder::new()
             .redirect(reqwest::redirect::Policy::none())
+            .timeout(Duration::from_secs(10))
             .build()
             .expect("failed to build reqwest client");
 
-        Self {
-            client_id: ClientId::new(client_id),
-            client_secret: ClientSecret::new(client_secret),
-            redirect_uri: RedirectUrl::new(redirect_uri).expect("invalid redirect uri"),
-            http,
-        }
-    }
-
-    fn client(&self) -> GoogleClient {
-        BasicClient::new(self.client_id.clone())
-            .set_client_secret(self.client_secret.clone())
+        let client = BasicClient::new(ClientId::new(client_id))
+            .set_client_secret(ClientSecret::new(client_secret))
             .set_auth_uri(AuthUrl::new(AUTH_URL.to_string()).expect("invalid auth url"))
             .set_token_uri(TokenUrl::new(TOKEN_URL.to_string()).expect("invalid token url"))
-            .set_redirect_uri(self.redirect_uri.clone())
+            .set_redirect_uri(RedirectUrl::new(redirect_uri).expect("invalid redirect uri"));
+
+        Self { client, http }
     }
 
     pub fn authorization_url(
@@ -55,8 +50,8 @@ impl GoogleOAuthClient {
     ) -> (url::Url, CsrfToken, PkceCodeVerifier) {
         let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 
-        let client = self.client();
-        let mut auth_request = client
+        let mut auth_request = self
+            .client
             .authorize_url(CsrfToken::new_random)
             .add_scope(Scope::new("openid".into()))
             .add_scope(Scope::new("email".into()))
@@ -81,43 +76,27 @@ impl GoogleOAuthClient {
         code: AuthorizationCode,
         pkce_verifier: PkceCodeVerifier,
     ) -> anyhow::Result<GoogleToken> {
-        use chrono::{Duration, Utc};
-
         let token = self
-            .client()
+            .client
             .exchange_code(code)
             .set_pkce_verifier(pkce_verifier)
             .request_async(&self.http)
             .await?;
 
-        Ok(GoogleToken {
-            access_token: token.access_token().secret().clone(),
-            refresh_token: token.refresh_token().map(|t| t.secret().clone()),
-            expires_at: token
-                .expires_in()
-                .map(|d| Utc::now() + Duration::from_std(d).unwrap()),
-        })
+        Ok(Self::to_google_token(&token))
     }
 
     pub async fn refresh_access_token(
         &self,
         refresh_token: RefreshToken,
     ) -> anyhow::Result<GoogleToken> {
-        use chrono::{Duration, Utc};
-
         let token = self
-            .client()
+            .client
             .exchange_refresh_token(&refresh_token)
             .request_async(&self.http)
             .await?;
 
-        Ok(GoogleToken {
-            access_token: token.access_token().secret().clone(),
-            refresh_token: token.refresh_token().map(|t| t.secret().clone()),
-            expires_at: token
-                .expires_in()
-                .map(|d| Utc::now() + Duration::from_std(d).unwrap()),
-        })
+        Ok(Self::to_google_token(&token))
     }
 
     pub async fn user_info(&self, access_token: &str) -> anyhow::Result<GoogleUserInfo> {
@@ -130,5 +109,16 @@ impl GoogleOAuthClient {
             .error_for_status()?
             .json::<GoogleUserInfo>()
             .await?)
+    }
+
+    fn to_google_token<T: TokenResponse>(token: &T) -> GoogleToken {
+        GoogleToken {
+            access_token: token.access_token().secret().clone(),
+            refresh_token: token.refresh_token().map(|t| t.secret().clone()),
+            expires_at: token
+                .expires_in()
+                .and_then(|d| chrono::Duration::from_std(d).ok())
+                .map(|d| Utc::now() + d),
+        }
     }
 }
