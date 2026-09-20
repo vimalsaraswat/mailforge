@@ -51,10 +51,24 @@ pub async fn create(
     State(state): State<AppState>,
     Json(request): Json<CreateEmailTemplateRequest>,
 ) -> Result<(StatusCode, Json<EmailTemplateResponse>), EmailTemplateError> {
+    let name = request.name.trim();
+    if name.is_empty() {
+        return Err(EmailTemplateError::Validation(
+            "Template name cannot be empty".to_string(),
+        ));
+    }
+
+    let subject = request.subject.trim();
+    if subject.is_empty() {
+        return Err(EmailTemplateError::Validation(
+            "Template subject cannot be empty".to_string(),
+        ));
+    }
+
     let service = EmailTemplateService::new(&state.db);
 
     let template = service
-        .create(user.id, &request.name, &request.subject, &request.body)
+        .create(user.id, name, subject, &request.body)
         .await?;
 
     tracing::info!(user_id = %user.id, template_id = %template.id, "Created email template");
@@ -71,10 +85,24 @@ pub async fn update(
     Path(id): Path<Uuid>,
     Json(request): Json<UpdateEmailTemplateRequest>,
 ) -> Result<Json<EmailTemplateResponse>, EmailTemplateError> {
+    let name = request.name.trim();
+    if name.is_empty() {
+        return Err(EmailTemplateError::Validation(
+            "Template name cannot be empty".to_string(),
+        ));
+    }
+
+    let subject = request.subject.trim();
+    if subject.is_empty() {
+        return Err(EmailTemplateError::Validation(
+            "Template subject cannot be empty".to_string(),
+        ));
+    }
+
     let service = EmailTemplateService::new(&state.db);
 
     let template = service
-        .update(user.id, id, &request.name, &request.subject, &request.body)
+        .update(user.id, id, name, subject, &request.body)
         .await?
         .ok_or(EmailTemplateError::NotFound)?;
 
