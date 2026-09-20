@@ -1,7 +1,9 @@
 use axum::{
+    Json,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use serde_json::json;
 use thiserror::Error;
 
 use crate::services::errors::AuthServiceError;
@@ -12,23 +14,30 @@ pub enum EmailTemplateError {
     Database(#[from] sqlx::Error),
     #[error("email template not found")]
     NotFound,
+    #[error("validation error: {0}")]
+    Validation(String),
 }
 
 impl IntoResponse for EmailTemplateError {
     fn into_response(self) -> Response {
         let (status, message) = match self {
-            Self::NotFound => (StatusCode::NOT_FOUND, "Email template not found"),
+            Self::NotFound => (StatusCode::NOT_FOUND, "Email template not found".to_string()),
+            Self::Validation(msg) => (StatusCode::BAD_REQUEST, msg),
             Self::Database(error) => {
                 tracing::error!(?error, "Email template database operation failed");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    "Email template storage failed",
+                    "Email template storage failed".to_string(),
                 )
             }
         };
 
-        (status, message).into_response()
+        json_error(status, message)
     }
+}
+
+pub fn json_error(status: StatusCode, message: impl Into<String>) -> Response {
+    (status, Json(json!({ "error": message.into() }))).into_response()
 }
 
 pub fn auth(error: AuthServiceError) -> Response {
@@ -52,5 +61,5 @@ pub fn auth(error: AuthServiceError) -> Response {
         ),
     };
 
-    (status, message).into_response()
+    json_error(status, message)
 }
