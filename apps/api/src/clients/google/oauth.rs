@@ -122,3 +122,27 @@ impl GoogleOAuthClient {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_google_oauth_client_initialization() {
+        let client = GoogleOAuthClient::new(
+            "test_client_id".into(),
+            "test_client_secret".into(),
+            "http://localhost:3000/auth/callback".into(),
+        );
+
+        let (url, csrf, _verifier) = client.authorization_url(false);
+        assert!(url.as_str().starts_with(AUTH_URL));
+        assert!(!csrf.secret().is_empty());
+        assert!(!url.as_str().contains("gmail.send"));
+
+        let (gmail_url, _, _) = client.authorization_url(true);
+        assert!(gmail_url.as_str().contains("gmail.send"));
+        assert!(gmail_url.as_str().contains("access_type=offline"));
+        assert!(gmail_url.as_str().contains("prompt=consent"));
+    }
+}
