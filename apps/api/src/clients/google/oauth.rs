@@ -37,9 +37,9 @@ impl GoogleOAuthClient {
 
         let client = BasicClient::new(ClientId::new(client_id))
             .set_client_secret(ClientSecret::new(client_secret))
-            .set_auth_uri(AuthUrl::new(AUTH_URL.to_string()).expect("invalid auth url"))
-            .set_token_uri(TokenUrl::new(TOKEN_URL.to_string()).expect("invalid token url"))
-            .set_redirect_uri(RedirectUrl::new(redirect_uri).expect("invalid redirect uri"));
+            .set_auth_uri(AuthUrl::new(AUTH_URL.to_string()).expect("AUTH_URL must be a valid URL"))
+            .set_token_uri(TokenUrl::new(TOKEN_URL.to_string()).expect("TOKEN_URL must be a valid URL"))
+            .set_redirect_uri(RedirectUrl::new(redirect_uri).expect("GOOGLE_REDIRECT_URI must be a valid URL"));
 
         Self { client, http }
     }
