@@ -6,5 +6,6 @@ pub struct HealthResponse {
 }
 
 pub fn health() -> HealthResponse {
+    // TODO: Check database connectivity before reporting healthy.
     HealthResponse { status: "ok" }
 }
